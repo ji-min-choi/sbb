@@ -1,0 +1,51 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy container app to Azure Web App - sbb-container-jimin
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to registry
+      uses: docker/login-action@v2
+      with:
+        registry: https://jiminchoi.azurecr.io/
+        username: ${{ secrets.AzureAppService_ContainerUsername_cf48738be6d64a7083e8af959d232591 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_a7b4713ae9ae4e5c9aba59fb40f121b2 }}
+
+    - name: Build and push container image to registry
+      uses: docker/build-push-action@v3
+      with:
+        push: true
+        tags: jiminchoi.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_cf48738be6d64a7083e8af959d232591 }}/sbb:${{ github.sha }}
+        file: ./Dockerfile
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'sbb-container-jimin'
+        slot-name: 'production'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_94d5e132b0d74336875d8286e83d8a25 }}
+        images: 'jiminchoi.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_cf48738be6d64a7083e8af959d232591 }}/sbb:${{ github.sha }}'
