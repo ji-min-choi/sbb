@@ -25,6 +25,8 @@ import org.springframework.validation.BindingResult;
 
 import lombok.RequiredArgsConstructor;  // 생성자를 자동으로 만들어주는 애
 
+import com.mygroup.sbb.chatgpt.ChatGptMessageService;
+
 @RequestMapping("/question")
 @RequiredArgsConstructor
 @Controller
@@ -32,6 +34,7 @@ public class QuestionController {
 
     private final QuestionService questionService;
     private final UserService userService;
+    private final ChatGptMessageService chatGptMessageService;
 
     @GetMapping("/list")
     public String list(Model model, @RequestParam(value="page", defaultValue="0") int page, @RequestParam(value = "kw", defaultValue = "") String kw) {
@@ -61,7 +64,8 @@ public class QuestionController {
             return "question_form";
         }
         SiteUser siteUser = this.userService.getUser(principal.getName());
-        this.questionService.create(questionForm.getSubject(), questionForm.getContent(), siteUser);
+        Question question = this.questionService.create(questionForm.getSubject(), questionForm.getContent(), siteUser);
+        this.chatGptMessageService.sendMessage(question);
         return "redirect:/question/list"; // 질문 저장후 질문목록으로 이동
     }
 
